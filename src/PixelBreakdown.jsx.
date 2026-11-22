@@ -1,0 +1,430 @@
+
+import { useEffect, useRef, useState } from 'react'
+import { renderText, renderMicroscope } from './renderer'
+import PixelBreakdown from './PixelBreakdown'
+import './App.css'
+
+function App() {
+  const [sampleText, setSampleText] = useState('Amazing')
+  const [mode, setMode] = useState('rgb')
+  const [shift, setShift] = useState(0)
+  const [stripeOrder, setStripeOrder] = useState('RGB')
+  const [selectedPixel, setSelectedPixel] = useState(null)
+  const [pixelMap, setPixelMap] = useState(null)
+
+  const grayscaleCanvas = useRef(null)
+  const rgbCanvas = useRef(null)
+  const microscopeCanvas = useRef(null)
+
+  useEffect(() => {
+    setSelectedPixel(null)
+  }, [sampleText, shift, stripeOrder])
+
+  useEffect(() => {
+    const updateCanvases = () => {
+      if (!grayscaleCanvas.current || !rgbCanvas.current || !microscopeCanvas.current) return
+
+      const text = sampleText || ' '
+
+      renderText(grayscaleCanvas.current, text, {
+        mode: 'grayscale',
+        shift,
+        fontSize: 70,
+        stripeOrder,
+      })
+
+      renderText(rgbCanvas.current, text, {
+        mode,
+        shift,
+        fontSize: 70,
+        stripeOrder,
+      })
+
+      const map = renderMicroscope(microscopeCanvas.current, text, {
+        shift,
+        fontSize: 70,
+        stripeOrder,
+        selectedPixel,
+      })
+
+      setPixelMap(map)
+
+      if (
+        map &&
+        (!selectedPixel ||
+          selectedPixel.col !== map.selectedPixel.col ||
+          selectedPixel.row !== map.selectedPixel.row)
+      ) {
+        setSelectedPixel(map.selectedPixel)
+      }
+    }
+
+    updateCanvases()
+    window.addEventListener('resize', updateCanvases)
+
+    return () => window.removeEventListener('resize', updateCanvases)
+  }, [sampleText, mode, shift, stripeOrder, selectedPixel])
+
+  const handleMicroscopeClick = (event) => {
+    const canvas = microscopeCanvas.current
+    if (!canvas) return
+
+    const rect = canvas.getBoundingClientRect()
+    const col = Math.floor((event.clientX - rect.left) / rect.width * 24)
+    const row = Math.floor((event.clientY - rect.top) / rect.height * 9)
+
+    if (col >= 0 && col < 24 && row >= 0 && row < 9) {
+      setSelectedPixel({ col, row })
+    }
+  }
+
+  const selectedValues = (() => {
+    if (!pixelMap || !selectedPixel) return { r: 0, g: 0, b: 0 }
+
+    const sourceX = pixelMap.startX + selectedPixel.col
+    const sourceY = pixelMap.startY + selectedPixel.row
+    const index = (sourceY * pixelMap.width + sourceX) * 3
+
+    return {
+      r: pixelMap.coverage[index],
+      g: pixelMap.coverage[index + 1],
+      b: pixelMap.coverage[index + 2],
+    }
+  })()
+
+  const percent = (value) => `${Math.round(value * 100)}%`
+
+  return (
+    <main className="app">
+      <div className="scanline" />
+
+      <nav className="navbar">
+        <a className="brand" href="#">
+          <span className="brand-mark">PX</span>
+          <span>PIXEL<span className="brand-muted">TRICK</span></span>
+        </a>
+
+        <div className="nav-center">
+          <span className="nav-indicator" />
+          SYSTEM ONLINE
+        </div>
+
+        <div className="nav-right">
+          <span className="live-dot" />
+          INTERACTIVE LAB
+          <span className="version">BUILD_01</span>
+        </div>
+      </nav>
+
+      <section className="hero">
+        <div className="hero-grid" />
+
+        <div className="hero-content">
+          <div className="eyebrow"><span>SYS.001</span> DISPLAY TECHNOLOGY / RESEARCH</div>
+
+          <div className="hero-status">
+            <span className="live-dot" />
+            EXPERIMENTAL ENVIRONMENT ACTIVE
+          </div>
+
+          <h1>
+            LOOK CLOSER.
+            <br />
+            <span>SEE THE PIXEL.</span>
+          </h1>
+
+          <p className="intro">
+            Your screen is hiding a secret in plain sight.
+            Explore how tiny RGB light components shape the text you read every day.
+          </p>
+
+          <div className="hero-actions">
+            <a className="explore" href="#lab">
+              <span>INITIALIZE EXPERIMENT</span>
+              <span>↘</span>
+            </a>
+            <span className="hero-code">PIXEL_RENDERING_PROTOCOL / 001</span>
+          </div>
+        </div>
+
+        <div className="hero-visual" aria-hidden="true">
+          <div className="visual-crosshair">+</div>
+          <div className="visual-label visual-label-top">FIG. 001 / RGB ARRAY</div>
+          <div className="rgb-orb">
+            <span className="orb-red" />
+            <span className="orb-green" />
+            <span className="orb-blue" />
+            <div className="orb-center">PX</div>
+          </div>
+          <div className="visual-coordinates">X: 128.04<br />Y: 064.12<br />Z: 003.00</div>
+          <div className="visual-label visual-label-bottom">SUBPIXEL STRUCTURE / DETECTED</div>
+        </div>
+
+        <div className="hero-bottom">
+          <span>RESEARCH LOG / 001</span>
+          <span>RGB SUBPIXEL ANALYSIS</span>
+          <span>SCROLL TO EXPLORE ↓</span>
+        </div>
+      </section>
+
+      <section className="how-section" id="how-it-works">
+        <div className="section-topline">
+          <span className="section-index">01</span>
+          <span>MECHANISM OVERVIEW</span>
+          <span className="section-line" />
+          <span>3 STAGES</span>
+        </div>
+
+        <div className="how-heading">
+          <div>
+            <div className="eyebrow">UNDER THE SURFACE</div>
+            <h2>HOW THE SCREEN<br /><span>BUILDS A LETTER.</span></h2>
+          </div>
+          <p>
+            A closer look at the hidden structure behind the pixels
+            that make up the text on your display.
+          </p>
+        </div>
+
+        <div className="how-grid">
+          <article className="how-card">
+            <div className="how-number">01 / PIXEL STRUCTURE</div>
+            <div className="diagram pixel-diagram">
+              <span className="diagram-stripe red-stripe" />
+              <span className="diagram-stripe green-stripe" />
+              <span className="diagram-stripe blue-stripe" />
+              <div className="diagram-caption">R / G / B</div>
+            </div>
+            <h3>Three light sources.</h3>
+            <p>
+              A typical RGB LCD pixel contains three colour components:
+              red, green and blue. Together, they produce the pixel's colour.
+            </p>
+            <div className="card-index">FIG. 001</div>
+          </article>
+
+          <article className="how-card">
+            <div className="how-number">02 / COVERAGE DATA</div>
+            <div className="diagram coverage-diagram">
+              <span className="diagram-stripe red-stripe" />
+              <span className="diagram-stripe green-stripe" />
+              <span className="diagram-stripe blue-stripe" />
+              <div className="coverage-beam" />
+              <div className="diagram-caption">0.35 / 0.68 / 1.00</div>
+            </div>
+            <h3>Different coverage.</h3>
+            <p>
+              A letter's edge can cover each colour component by a different
+              amount. The renderer calculates coverage independently.
+            </p>
+            <div className="card-index">FIG. 002</div>
+          </article>
+
+          <article className="how-card">
+            <div className="how-number">03 / VISUAL OUTPUT</div>
+            <div className="diagram result-diagram">
+              <span className="result-light red-light" />
+              <span className="result-light green-light" />
+              <span className="result-light blue-light" />
+              <div className="diagram-caption">OUTPUT / GENERATED</div>
+            </div>
+            <h3>A smoother edge.</h3>
+            <p>
+              The channel values combine into the displayed pixel.
+              This can make text edges appear smoother on compatible displays.
+            </p>
+            <div className="card-index">FIG. 003</div>
+          </article>
+        </div>
+
+        <div className="how-footnote">
+          <span>!</span>
+          This is a software simulation of subpixel coverage. It does not increase the physical resolution of a display.
+        </div>
+      </section>
+
+      <section className="lab" id="lab">
+        <div className="section-topline">
+          <span className="section-index">02</span>
+          <span>LIVE EXPERIMENT</span>
+          <span className="section-line" />
+          <span>INTERACTIVE MODULE</span>
+        </div>
+
+        <div className="section-heading">
+          <div>
+            <div className="eyebrow">RENDERING LAB / TERMINAL 001</div>
+            <h2>Control the pixels.</h2>
+            <p className="section-description">
+              Modify the input. Observe the output. Inspect the smallest details.
+            </p>
+          </div>
+          <div className="experiment-tag">
+            <span className="live-dot" />
+            EXPERIMENT ACTIVE
+          </div>
+        </div>
+
+        <div className="controls">
+          <label htmlFor="sample">INPUT STRING</label>
+          <div className="input-wrap">
+            <span className="input-prefix">&gt;_</span>
+            <input
+              id="sample"
+              value={sampleText}
+              maxLength={18}
+              onChange={(e) => setSampleText(e.target.value)}
+              placeholder="Enter text..."
+            />
+            <span className="input-count">{sampleText.length}/18</span>
+          </div>
+        </div>
+
+        <div className="comparison">
+          <div className="preview-card">
+            <div className="preview-top">
+              <span className="status-dot grey" />
+              <span>OUTPUT_01 / GRAYSCALE</span>
+              <span className="method">STANDARD</span>
+            </div>
+            <canvas ref={grayscaleCanvas} className="preview-canvas" />
+            <p>ONE AVERAGE COVERAGE VALUE PER PIXEL</p>
+          </div>
+
+          <div className="preview-card rgb-card">
+            <div className="preview-top">
+              <span className="status-dot rgb-dot" />
+              <span>OUTPUT_02 / SUBPIXEL {stripeOrder}</span>
+              <span className="method">{mode === 'rgb' ? 'RGB MODE' : 'GRAYSCALE'}</span>
+            </div>
+            <canvas ref={rgbCanvas} className="preview-canvas" />
+            <p>THREE INDEPENDENTLY CALCULATED CHANNELS</p>
+          </div>
+        </div>
+
+        <div className="microscope">
+          <div className="microscope-heading">
+            <div>
+              <div className="eyebrow">MODULE_03 / PIXEL INSPECTOR</div>
+              <h3>Microscope<span>.</span></h3>
+              <p>SELECT A CELL TO READ ITS CHANNEL COVERAGE.</p>
+            </div>
+            <div className="zoom-label">PIXEL GRID / 24×9</div>
+          </div>
+
+          <canvas
+            ref={microscopeCanvas}
+            className="microscope-canvas"
+            aria-label="Magnified subpixel coverage grid. Click a pixel to inspect it."
+            onClick={handleMicroscopeClick}
+          />
+
+          <div className="channel-legend">
+            <span><i className="red" /> RED</span>
+            <span><i className="green" /> GREEN</span>
+            <span><i className="blue" /> BLUE</span>
+          </div>
+
+          <div className="pixel-inspector">
+            <div className="inspector-title">
+              <span>SELECTED PIXEL / DATA READOUT</span>
+              <span>
+                X: {selectedPixel ? selectedPixel.col + 1 : '—'} / Y: {selectedPixel ? selectedPixel.row + 1 : '—'}
+              </span>
+            </div>
+
+            <div className="channel-values">
+              <div className="channel-value red-value">
+                <span className="value-name">RED CHANNEL</span>
+                <strong>{percent(selectedValues.r)}</strong>
+                <div className="value-track"><span style={{ width: percent(selectedValues.r) }} /></div>
+              </div>
+
+              <div className="channel-value green-value">
+                <span className="value-name">GREEN CHANNEL</span>
+                <strong>{percent(selectedValues.g)}</strong>
+                <div className="value-track"><span style={{ width: percent(selectedValues.g) }} /></div>
+              </div>
+
+              <div className="channel-value blue-value">
+                <span className="value-name">BLUE CHANNEL</span>
+                <strong>{percent(selectedValues.b)}</strong>
+                <div className="value-track"><span style={{ width: percent(selectedValues.b) }} /></div>
+              </div>
+            </div>
+          </div>
+
+          <p className="microscope-note">
+            EACH CELL = ONE PIXEL. EACH VERTICAL SECTION = ONE SUBPIXEL.
+            BRIGHTNESS REPRESENTS CALCULATED GLYPH COVERAGE.
+          </p>
+        </div>
+
+        <div className="experiment-controls">
+          <div className="control-group">
+            <div className="control-info">
+              <label htmlFor="shift">HORIZONTAL OFFSET</label>
+              <span>{shift.toFixed(2)} PX</span>
+            </div>
+            <input
+              id="shift"
+              className="slider"
+              type="range"
+              min="-1"
+              max="1"
+              step="0.05"
+              value={shift}
+              onChange={(e) => setShift(Number(e.target.value))}
+            />
+            <div className="range-labels"><span>-1 PX</span><span>0 PX</span><span>+1 PX</span></div>
+          </div>
+
+          <div className="control-group">
+            <div className="control-info"><label>SUBPIXEL ORDER</label></div>
+            <div className="mode-buttons">
+              <button className={stripeOrder === 'RGB' ? 'active' : ''} onClick={() => setStripeOrder('RGB')}>
+                RGB ORDER
+              </button>
+              <button className={stripeOrder === 'BGR' ? 'active' : ''} onClick={() => setStripeOrder('BGR')}>
+                BGR ORDER
+              </button>
+            </div>
+          </div>
+
+          <div className="control-group">
+            <div className="control-info"><label>RENDERING MODE</label></div>
+            <div className="mode-buttons">
+              <button className={mode === 'rgb' ? 'active' : ''} onClick={() => setMode('rgb')}>
+                SUBPIXEL RENDERING
+              </button>
+              <button className={mode === 'grayscale' ? 'active' : ''} onClick={() => setMode('grayscale')}>
+                GRAYSCALE
+              </button>
+            </div>
+          </div>
+
+          <p className="hint">
+            &gt; CHANGE THE INPUT / SWITCH THE SUBPIXEL ORDER / MOVE BY FRACTIONS OF A PIXEL.
+          </p>
+        </div>
+      </section>
+
+      <PixelBreakdown
+        text={sampleText}
+        shift={shift}
+        stripeOrder={stripeOrder}
+      />
+
+      <footer>
+        <div className="footer-brand">
+          <span className="brand-mark">PX</span>
+          PIXEL<span>TRICK</span>
+        </div>
+        <p>LOOK CLOSER. SEE THE PIXEL.</p>
+        <span className="footer-version">DISPLAY TECHNOLOGY / RESEARCH LOG 001</span>
+      </footer>
+    </main>
+  )
+}
+
+export default App
